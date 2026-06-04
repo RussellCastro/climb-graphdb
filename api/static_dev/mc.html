@@ -127,7 +127,7 @@
         <strong>Resid</strong> = closed-form elo_residual (actual − expected); <strong>Resid (MC)</strong> = its Monte-Carlo analogue.
         <strong>P(podium)</strong> = modeled chance of a top-3 finish.
         <strong>Rank &sigma;</strong> = std-dev of the simulated finishing rank (spread / volatility).
-        <strong>Why</strong> = predicted placing (<code>expected &asymp; N of M</code> from the MC mean rank) plus a one-line, lens-specific reason for the current sort.
+        <strong>Why</strong> = predicted placing (<code>expected &asymp; N</code> from the MC mean rank, with <code>of M</code> when the field size is known) plus a one-line, lens-specific reason for the current sort.
       </div>
     </div>
   </main>
@@ -193,7 +193,7 @@
       const resp = await fetch("/insights/mc-performances?sort=" + encodeURIComponent(sort) + "&limit=50");
       if (!resp.ok) throw new Error("HTTP " + resp.status);
       const data = await resp.json();
-      drawRows(data.rows || []);
+      drawRows(data.rows || [], sort);
       document.getElementById("board").style.display = "block";
     }
 
@@ -221,8 +221,8 @@
           return "Finished better than predicted — only " + fmt(pctl * 100, 0)
             + "% of simulated outcomes were this good or better.";
         case "underperformed":
-          return "Finished worse than predicted — " + fmt(pctl * 100, 0)
-            + "% of simulated outcomes were this good or better.";
+          return "Finished worse than predicted — only " + fmt((1 - pctl) * 100, 0)
+            + "% of simulated outcomes were this bad or worse.";
         case "dominant":
           return "Heavy favourite: P(win) " + fmt(r.p_win, 3)
             + ", P(podium) " + fmt(r.p_podium, 3) + ".";
@@ -234,7 +234,7 @@
       }
     }
 
-    function drawRows(rows) {
+    function drawRows(rows, sort) {
       const tbody = document.getElementById("rows");
       tbody.replaceChildren();
       rows.forEach((r) => {
@@ -271,7 +271,7 @@
         pred.textContent = predictedPlacing(r);
         const reason = document.createElement("span");
         reason.className = "reason";
-        reason.textContent = reasonFor(r, activeSort);
+        reason.textContent = reasonFor(r, sort);
         whyTd.appendChild(pred);
         whyTd.appendChild(reason);
         tr.appendChild(whyTd);
