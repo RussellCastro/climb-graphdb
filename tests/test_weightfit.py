@@ -290,12 +290,16 @@ class TestFitWeightsGridStepsGuard:
             fit_weights([], grid_steps=1)
 
     def test_grid_steps_zero_raises(self) -> None:
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="grid_steps"):
             fit_weights([], grid_steps=0)
 
     def test_grid_steps_negative_raises(self) -> None:
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="grid_steps"):
             fit_weights([], grid_steps=-5)
+
+    def test_negative_permutations_raises(self) -> None:
+        with pytest.raises(ValueError, match="permutations"):
+            fit_weights([], permutations=-1)
 
 
 def test_default_has_no_significance() -> None:
@@ -305,6 +309,7 @@ def test_default_has_no_significance() -> None:
     ]
     result = fit_weights(samples)
     assert result["significance"]["permutations"] == 0
+    assert result["significance"]["seed"] == 12345
     assert result["significance"]["p_value"] is None
 
 
@@ -366,12 +371,20 @@ class TestFitWeightsPermutation:
         assert result["significance"]["p_value"] < 0.05
 
     def test_pure_noise_high_p_value(self) -> None:
-        samples = self._noise_samples()
-        result = fit_weights(samples, permutations=200, seed=13)
+        # Outcome independent of the inputs: the observed most-negative grid
+        # correlation is just a draw from the permutation null, so p should be
+        # large. Dataset seed 9 sits comfortably high (~0.97) across perm seeds.
+        samples = self._noise_samples(seed=9)
+        result = fit_weights(samples, permutations=400, seed=13)
         p_value = result["significance"]["p_value"]
-        assert p_value is not None and p_value > 0.1
+        assert p_value is not None and p_value > 0.5
 
-    def test_permutation_none_when_no_valid_correlation(self) -> None:
+    def test_permutation_skipped_when_observed_pearson_none(self) -> None:
+        # Constant outcome -> zero variance -> the observed best pearson is None,
+        # so the permutation block short-circuits (observed is None) and p_value
+        # is None. (Shuffling a constant stays constant, so a "defined observed
+        # but every shuffle degenerate" valid==0 case is unreachable for real
+        # data; this covers the observed-None skip path.)
         samples = [
             WeightSample(jetlag_residual=0.2, travel_fatigue=0.3, outcome=0.5),
             WeightSample(jetlag_residual=0.8, travel_fatigue=0.7, outcome=0.5),

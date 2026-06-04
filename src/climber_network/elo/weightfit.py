@@ -31,7 +31,7 @@ Usage::
 
     from climber_network.elo.weightfit import WeightSample, fit_weights
 
-    samples = [WeightSample(jr=0.8, tf=0.6, outcome=-0.3), ...]
+    samples = [WeightSample(jetlag_residual=0.8, travel_fatigue=0.6, outcome=-0.3), ...]
     result = fit_weights(samples)
     print(result["best"])   # {"w1": ..., "w2": ..., "pearson": ...}
 """
@@ -189,6 +189,9 @@ def fit_weights(
     if grid_steps < 2:
         msg = f"grid_steps must be >= 2, got {grid_steps!r}"
         raise ValueError(msg)
+    if permutations < 0:
+        msg = f"permutations must be >= 0, got {permutations!r}"
+        raise ValueError(msg)
 
     n = len(samples)
     outcomes: list[float] = [s.outcome for s in samples]
@@ -249,7 +252,8 @@ def fit_weights(
     # the outcome vector `permutations` times (seeded), refit the most-negative
     # grid Pearson each time, and report the fraction of shuffles at least as
     # extreme (<=) as the observed best. Opt-in: permutations=0 (default) skips
-    # it. Uses the add-one estimator so p stays in (0, 1].
+    # it. The add-one estimator keeps p in (0, 1] when at least one permutation
+    # yields a valid correlation (p_value is None otherwise).
     p_value: float | None = None
     observed = best["pearson"]
     if permutations >= 1 and n >= 2 and observed is not None:
