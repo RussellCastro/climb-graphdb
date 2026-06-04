@@ -86,9 +86,10 @@ class PerformanceRecord:
 class SeasonAggregate:
     """A single rolled-up summary for one (athlete, season, discipline).
 
-    Each ``mean_*`` / ``season_*`` rollup is taken over the **non-None** values of
-    the corresponding field across the season's records; a rollup with no usable
-    data is ``None``. ``over_under`` is the cumulative signed under-performance
+    Each ``mean_*`` / ``season_*`` rollup except ``mean_over_under`` is taken over
+    the **non-None** values of the corresponding field across the season's records;
+    a rollup with no usable data is ``None``. ``over_under`` is the cumulative
+    signed under-performance
     (sum of the available ``elo_residual`` values — positive = the athlete
     underperformed across the season); ``mean_over_under`` is its
     per-event-normalized companion (``over_under / n_events``) used for
@@ -141,9 +142,9 @@ def aggregate_seasons(
 ) -> list[SeasonAggregate]:
     """Group *records* by (athlete_id, season, discipline) and roll each up.
 
-    Every ``mean_*`` / ``season_*`` field is the mean of the non-None values of
-    its source field within the group (``None`` when none are present).
-    ``over_under`` is the sum of the available ``elo_residual`` values, and
+    Every ``mean_*`` / ``season_*`` field except ``mean_over_under`` is the mean of
+    the non-None values of its source field within the group (``None`` when none
+    are present). ``over_under`` is the sum of the available ``elo_residual`` values, and
     ``mean_over_under`` is that sum divided by ``n_events``, or ``None`` when
     there are no residuals. ``n_upsets`` is the count of records whose
     ``surprisal`` is not ``None`` and strictly greater than *upset_threshold*.

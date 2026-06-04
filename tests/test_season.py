@@ -136,6 +136,17 @@ def test_mean_over_under_is_sum_over_n_events() -> None:
     assert agg.over_under != agg.mean_over_under
 
 
+def test_mean_over_under_zero_sum_residuals_is_zero_not_none() -> None:
+    # Residuals present but summing to exactly 0.0 must give mean_over_under == 0.0
+    # (data that cancels), NOT None (no data) — this is the `if residuals` boundary
+    # the fix turns on (vs the old `if n_events > 0`).
+    records = [_rec(elo_residual=1.0), _rec(elo_residual=-1.0)]
+    (agg,) = aggregate_seasons(records)
+    assert agg.over_under == 0.0
+    assert agg.mean_over_under == 0.0
+    assert agg.mean_over_under is not None
+
+
 def test_empty_input() -> None:
     assert aggregate_seasons([]) == []
     report = season_drivers_report([])
@@ -152,6 +163,9 @@ def test_drivers_excludes_seasons_without_outcome_data() -> None:
     aggregates = aggregate_seasons(records)
     report = season_drivers_report(aggregates)
     assert report["overall"] == {"pearson_r": None, "n": 0}
+    # The per-discipline partition runs the same _drivers_block, so the lone
+    # "L" season is excluded there too.
+    assert report["by_discipline"]["L"] == {"pearson_r": None, "n": 0}
 
 
 def test_drivers_report_shape_and_known_sign() -> None:

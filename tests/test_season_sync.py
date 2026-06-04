@@ -141,6 +141,11 @@ def test_none_valued_rollup_props_are_dropped() -> None:
 
 
 def test_mean_over_under_dropped_when_no_residuals() -> None:
+    # The real SEASON_QUERY filters `WHERE p.elo_residual IS NOT NULL`, so this
+    # residual-less row can't arise from a live read; FakeGraphClient returns the
+    # seeded row verbatim, exercising the None-drop path in _write_season_summaries
+    # (reachable only if that filter is ever relaxed or aggregate_seasons is fed
+    # from another source).
     client = FakeGraphClient(
         read_results={SEASON_QUERY: [_row("ath:8", 2024, "L", rested_index=0.5)]}
     )
